@@ -1,56 +1,53 @@
-Photo Booth Web App
 
-Author: [Your Name]
-Version: 0.1
-Date: February 2026
+# Photo Booth Web App
 
-Project Overview
+**Author:** Shafeen
+**Version:** 0.1
+**Date:** February 2026
 
-The Photo Booth Web App is a temporary, browser-based photo sharing platform designed for events. It allows event organizers to create events and collect photos from guests via a QR code or link. Events automatically expire after 30 days.
+---
 
-Key Goals:
+## Project Overview
 
-Simple event creation for owners
+The Photo Booth Web App is a **temporary, browser-based photo sharing platform** designed for events. It allows event organizers to create events and collect photos from guests via a QR code or link. Events automatically expire after 30 days.
 
-Guest photo uploads without accounts
+**Key Goals:**
 
-Owner dashboard for managing photos
+* Simple event creation for owners
+* Guest photo uploads without accounts
+* Owner dashboard for managing photos
+* Automatic event expiry and photo deletion
 
-Automatic event expiry and photo deletion
+---
 
-Planned Features
+## Planned Features
 
-Owner Features:
+**Owner Features:**
 
-Create event (event name, optional email)
+* Create event (event name, optional email)
+* Receive secret dashboard link
+* View, delete, download photos
+* Close uploads early
 
-Receive secret dashboard link
+**Guest Features:**
 
-View, delete, download photos
+* Scan QR code / click event link
+* View event gallery
+* Upload photos anonymously
+* Share event with others
 
-Close uploads early
+**System Features:**
 
-Guest Features:
+* Photo validation (type, size)
+* Auto-expiry after 30 days
+* Storage on local server (dev) or S3 (production)
+* Mobile-friendly design
 
-Scan QR code / click event link
+---
 
-View event gallery
+## Project Structure (Planned)
 
-Upload photos anonymously
-
-Share event with others
-
-System Features:
-
-Photo validation (type, size)
-
-Auto-expiry after 30 days
-
-Storage on local server (dev) or S3 (production)
-
-Mobile-friendly design
-
-Project Structure (Planned)
+```
 photo-booth/
 ├── backend/                 # Django backend
 │   ├── events/              # Event creation, expiry logic
@@ -63,28 +60,28 @@ photo-booth/
 │   └── static/              # CSS and JS files
 ├── media/                   # Uploaded photos (local dev)
 └── README.md                # Project summary and plan
+```
 
-Implementation Plan
+---
 
-Step 1: Setup Django project and models
-Step 2: Create event creation form and owner dashboard (basic HTML templates)
-Step 3: Implement photo upload and gallery view
-Step 4: Generate QR codes and secret owner links
-Step 5: Add auto-expiry logic for events and photos
-Step 6: Polish UI for mobile-friendly experience
-Step 7: Optional: S3 storage integration and ZIP download
+## Implementation Plan
 
-Technologies to Use
+**Step 1:** Setup Django project and models
+**Step 2:** Create event creation form and owner dashboard (basic HTML templates)
+**Step 3:** Implement photo upload and gallery view
+**Step 4:** Generate QR codes and secret owner links
+**Step 5:** Add auto-expiry logic for events and photos
+**Step 6:** Polish UI for mobile-friendly experience
+**Step 7:** Optional: S3 storage integration and ZIP download
 
-Backend: Django (Python)
+---
 
-Frontend: Django templates + JS
+## Technologies to Use
 
-Database: PostgreSQL (or SQLite for dev)
+* **Backend:** Django (Python)
+* **Frontend:** Django templates + JS
+* **Database:** PostgreSQL (or SQLite for dev)
+* **Storage:** Local file system (dev) / AWS S3 (prod)
+* **QR Codes:** Python library (qrcode)
 
-Storage: Local file system (dev) / AWS S3 (prod)
-
-QR Codes: Python library (qrcode)
-
-
-
+---
