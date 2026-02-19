@@ -29,9 +29,15 @@ SECRET_KEY = "django-insecure-8(d9g1zhz5(a2zfhe92^-*lf0l&e7mwi!rmm36pul-vwb9ai1^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
-
+ALLOWED_HOSTS = [
+    "photobooth-xqxe.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = [
+    "https://photobooth-xqxe.onrender.com",
+]
 # Application definition
 
 INSTALLED_APPS = [
