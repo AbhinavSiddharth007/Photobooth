@@ -487,16 +487,14 @@ async function capturePhoto() {
         return;
     }
 
-    // Disable button to prevent double-tap
     captureBtn.disabled = true;
     updateStatus('Capturing...', 'white');
 
-
+    // wait for a real frame
     await new Promise(resolve => {
         if (typeof video.requestVideoFrameCallback === 'function') {
             video.requestVideoFrameCallback(resolve);
         } else {
-            // Two rAF ticks is enough for the compositor to have a real frame
             requestAnimationFrame(() => requestAnimationFrame(resolve));
         }
     });
@@ -507,33 +505,36 @@ async function capturePhoto() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    capturedImageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    canvas.toBlob(blob => {
 
-    // A valid JPEG of even a tiny webcam frame should be well above 5 KB
-    if (capturedImageDataUrl.length < 5000) {
-        captureBtn.disabled = false;
-        updateStatus('Ready ✓', '#685DC5');
-        alert('Capture produced a blank image. Please try again.');
-        return;
-    }
+        if (!blob || blob.size === 0) {
+            captureBtn.disabled = false;
+            updateStatus('Ready ✓', '#685DC5');
+            alert("Capture failed — blank image.");
+            return;
+        }
 
-    // Show preview
-    const preview = document.getElementById('capturedPreview');
-    preview.src = capturedImageDataUrl;
-    preview.style.display = 'block';
+        capturedBlob = blob;
 
-    // Hide video
-    video.style.display = 'none';
-    document.getElementById('facingBtn').style.display = 'none';
-    document.getElementById('cameraLiveActions').style.display = 'none';
-    document.getElementById('cameraReviewActions').style.display = 'flex';
-    updateStatus('Photo captured ✓', '#28a745');
+        // show preview
+        const preview = document.getElementById('capturedPreview');
+        preview.src = URL.createObjectURL(blob);
+        preview.style.display = 'block';
 
-    // Stop camera stream to free the camera light / save battery
-    if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-    }
+        // hide video + switch UI
+        video.style.display = 'none';
+        document.getElementById('facingBtn').style.display = 'none';
+        document.getElementById('cameraLiveActions').style.display = 'none';
+        document.getElementById('cameraReviewActions').style.display = 'flex';
+        updateStatus('Photo captured ✓', '#28a745');
+
+        // stop camera
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
+        }
+
+    }, 'image/jpeg', 0.92);
 }
 
 function retakePhoto() {
@@ -543,19 +544,45 @@ function retakePhoto() {
 }
 
 function dataURLToBlob(dataURL) {
-    if (!dataURL) return null;
-    const [header, base64] = dataURL.split(',');
-    const contentType = header.match(/:(.*?);/)[1];
-    const binary = atob(base64);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        array[i] = binary.charCodeAt(i);
+    if (!dataURL || typeof dataURL !== "string") return null;
+
+    const parts = dataURL.split(',');
+
+    if (parts.length !== 2) {
+        console.error("Invalid DataURL:", dataURL.slice(0,50));
+        return null;
     }
-    return new Blob([array], { type: contentType });
+
+    const header = parts[0];
+    const base64 = parts[1];
+
+    let contentType = 'image/jpeg'; // safe default
+
+    const match = header.match(/data:(.*?);base64/);
+    if (match && match[1]) {
+        contentType = match[1];
+    }
+
+    try {
+        const binary = atob(base64);
+        const len = binary.length;
+        const array = new Uint8Array(len);
+
+        for (let i = 0; i < len; i++) {
+            array[i] = binary.charCodeAt(i);
+        }
+
+        return new Blob([array], { type: contentType });
+
+    } catch (err) {
+        console.error("Blob conversion failed:", err);
+        return null;
+    }
 }
 
 async function uploadCaptured() {
-    if (!capturedImageDataUrl) {
+
+    if (!capturedBlob) {
         alert('No photo captured to upload!');
         return;
     }
@@ -563,20 +590,16 @@ async function uploadCaptured() {
     closeCameraModal();
 
     try {
-        // convert DataURL to Blob
-        const blob = dataURLToBlob(capturedImageDataUrl);
-        if (!blob) {
-            alert('Failed to create file from captured image.');
-            return;
-        }
 
         const timestamp = Date.now();
-        const file = new File([blob], `camera_${timestamp}.jpg`, {
+
+        const file = new File([capturedBlob], `camera_${timestamp}.jpg`, {
             type: 'image/jpeg',
             lastModified: timestamp
         });
 
         await doUpload(file);
+
     } catch (err) {
         alert('Failed to upload photo: ' + err.message);
         console.error(err);
