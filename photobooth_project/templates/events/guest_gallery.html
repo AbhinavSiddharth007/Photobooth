@@ -1,0 +1,595 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.name }} - Gallery{% endblock %}
+
+{% block content %}
+
+<style>
+.gallery-wrapper{
+    background: linear-gradient(120deg,#f7f6ff,#f1efff);
+    padding:40px 25px;
+    border-radius:18px;
+    box-shadow:0 10px 35px rgba(0,0,0,0.05);
+}
+
+.event-title{
+    font-weight:700;
+    letter-spacing:.3px;
+}
+
+.upload-btn{
+    background:#685DC5;
+    border:none;
+    padding:10px 18px;
+    border-radius:10px;
+    font-weight:600;
+    color:white;
+    transition:.25s;
+    cursor:pointer;
+}
+.upload-btn:hover{
+    background:#574bb5;
+    transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(104,93,197,.35);
+}
+
+.camera-btn{
+    background:white;
+    border:2px solid #685DC5;
+    color:#685DC5;
+    padding:10px 18px;
+    border-radius:10px;
+    font-weight:600;
+    transition:.25s;
+    cursor:pointer;
+}
+.camera-btn:hover{
+    background:#685DC5;
+    color:white;
+    transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(104,93,197,.35);
+}
+
+/* photo card */
+.photo-card{
+    background:white;
+    border-radius:16px;
+    padding:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+    transition:.25s;
+    overflow:hidden;
+}
+.photo-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 14px 35px rgba(0,0,0,0.12);
+}
+.photo-card img{
+    width:100%;
+    height:220px;
+    object-fit:cover;
+    border-radius:12px;
+    transition:.35s;
+}
+.photo-card:hover img{
+    transform:scale(1.05);
+}
+
+/* empty state */
+.empty-box{
+    background:white;
+    border-radius:16px;
+    padding:40px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+}
+
+/* upload progress */
+.upload-toast{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    background:white;
+    border-radius:14px;
+    padding:16px 20px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    display:none;
+    align-items:center;
+    gap:12px;
+    z-index:999;
+    min-width:220px;
+}
+.upload-toast.visible{ display:flex; }
+.toast-spinner{
+    width:20px;
+    height:20px;
+    border:3px solid #e9e8ff;
+    border-top-color:#685DC5;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    flex-shrink:0;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* Camera modal */
+.camera-modal-backdrop{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.75);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+}
+.camera-modal-backdrop.visible{ display:flex; }
+.camera-modal{
+    background:white;
+    border-radius:20px;
+    padding:24px;
+    width:100%;
+    max-width:520px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
+.camera-modal h5{
+    font-weight:700;
+    margin-bottom:16px;
+}
+.camera-video-wrap{
+    position:relative;
+    background:#000;
+    border-radius:14px;
+    overflow:hidden;
+}
+#cameraPreview{
+    width:100%;
+    border-radius:14px;
+    background:#000;
+    display:block;
+}
+#capturedPreview{
+    width:100%;
+    border-radius:14px;
+    display:none;
+}
+.camera-actions{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    flex-wrap:wrap;
+}
+.camera-actions button{
+    flex:1;
+    min-width:120px;
+}
+
+/* Facing toggle */
+#facingBtn{
+    position:absolute;
+    top:12px;
+    right:12px;
+    background:rgba(255,255,255,0.9);
+    border:none;
+    border-radius:50%;
+    width:40px;
+    height:40px;
+    font-size:1.2rem;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    transition:.2s;
+    z-index:10;
+}
+#facingBtn:hover{
+    background:white;
+    transform:scale(1.05);
+}
+
+.camera-status{
+    position:absolute;
+    top:12px;
+    left:12px;
+    background:rgba(255,255,255,0.9);
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:0.8rem;
+    font-weight:600;
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+</style>
+
+<!-- CAMERA MODAL -->
+<div class="camera-modal-backdrop" id="cameraModal">
+    <div class="camera-modal">
+        <h5>📷 Take a Photo</h5>
+
+        <div class="camera-video-wrap">
+            <video id="cameraPreview" autoplay playsinline muted></video>
+            <img id="capturedPreview" alt="Captured photo">
+            <button id="facingBtn" onclick="flipCamera()" title="Flip camera">🔄</button>
+            <div class="camera-status" id="cameraStatus">Starting...</div>
+        </div>
+
+        <div class="camera-actions" id="cameraLiveActions">
+            <button class="upload-btn" id="captureBtn" onclick="capturePhoto()" disabled>
+                📸 Capture
+            </button>
+            <button class="camera-btn" onclick="closeCameraModal()">Cancel</button>
+        </div>
+
+        <div class="camera-actions" id="cameraReviewActions" style="display:none;">
+            <button class="upload-btn" onclick="uploadCaptured()">⬆️ Upload</button>
+            <button class="camera-btn" onclick="retakePhoto()">↩️ Retake</button>
+            <button class="camera-btn" onclick="closeCameraModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- UPLOAD TOAST -->
+<div class="upload-toast" id="uploadToast">
+    <div class="toast-spinner"></div>
+    <span>Uploading photo...</span>
+</div>
+
+<div class="gallery-wrapper">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="event-title">{{ event.name }}</h2>
+
+        {% if event.uploads_enabled %}
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="camera-btn" onclick="openCameraModal()">
+                📷 Open Camera
+            </button>
+            <button class="upload-btn" onclick="document.getElementById('photoInput').click()">
+                📸 Upload Photo
+            </button>
+        </div>
+        {% else %}
+        <span class="badge bg-secondary fs-6 px-3 py-2 rounded-3">Uploads closed</span>
+        {% endif %}
+    </div>
+
+    <input type="file" id="photoInput"
+           accept="image/jpeg,image/png"
+           style="display:none"
+           onchange="uploadPhoto(this)">
+
+    <div id="photoGallery" class="row g-4">
+
+        {% for photo in event.photos.all %}
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="photo-card">
+                <img src="{{ photo.s3_url }}" alt="Photo">
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center" id="emptyState">
+            <div class="empty-box">
+                <h5 class="mb-2">No photos yet</h5>
+                <p class="text-muted mb-0">Upload the first memory from this event ✨</p>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+</div>
+
+<script>
+/* ========== FILE UPLOAD ========== */
+async function uploadPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    await doUpload(file);
+    input.value = '';
+}
+
+async function doUpload(file) {
+    showToast(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    // Log what we're sending so it appears in browser DevTools console
+    console.log('[upload] sending file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+    });
+
+    try {
+        const response = await fetch('{% url "upload_photo" event.guest_code %}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const rawText = await response.text();
+        console.log('[upload] status:', response.status, '  raw response:', rawText);
+
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (e) {
+            alert('Server returned non-JSON response (status ' + response.status + '):\n\n' + rawText.slice(0, 300));
+            showToast(false);
+            return;
+        }
+
+        if (data.success && data.photo_url) {
+            addPhotoToGallery(data.photo_url);
+        } else if (data.success && !data.photo_url) {
+            // Upload succeeded on server but URL is missing — show the raw data
+            alert('Upload succeeded but photo_url is missing.\n\nServer returned:\n' + rawText);
+        } else {
+            alert('Upload error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Upload failed: ' + error.message);
+    }
+
+    showToast(false);
+}
+
+function addPhotoToGallery(url) {
+    // Remove empty state if present
+    const empty = document.getElementById('emptyState');
+    if (empty) empty.remove();
+
+    const gallery = document.getElementById('photoGallery');
+    const col = document.createElement('div');
+    col.className = 'col-6 col-md-4 col-lg-3';
+    col.innerHTML = `<div class="photo-card"><img src="${url}" alt="Photo"></div>`;
+    gallery.prepend(col);
+}
+
+function showToast(show) {
+    document.getElementById('uploadToast').classList.toggle('visible', show);
+}
+
+let stream = null;
+let facingMode = 'environment';
+let capturedImageDataUrl = null;
+
+function updateStatus(message, color = '#685DC5') {
+    const status = document.getElementById('cameraStatus');
+    status.textContent = message;
+    status.style.background = color === '#685DC5' ? 'rgba(104, 93, 197, 0.9)' : 'rgba(255,255,255,0.9)';
+    status.style.color = color === '#685DC5' ? 'white' : '#333';
+}
+
+async function openCameraModal() {
+    document.getElementById('cameraModal').classList.add('visible');
+    await startCamera();
+}
+
+async function startCamera() {
+    // Stop any existing stream
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+
+    const video = document.getElementById('cameraPreview');
+    const captureBtn = document.getElementById('captureBtn');
+    captureBtn.disabled = true;
+    updateStatus('Starting camera...', 'white');
+
+    // Check if mediaDevices is available at all (requires HTTPS or localhost)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('Camera not available', '#dc3545');
+        alert('Camera access is not available.\n\nThis feature requires HTTPS. If you\'re on HTTP, please use the "Upload Photo" button instead to select a file from your device.');
+        closeCameraModal();
+        return;
+    }
+
+    // Build a list of constraint sets to try in order.
+    // This lets us fall back gracefully: ideal facing mode → any camera.
+    const constraintCandidates = [
+        // 1st try: exact facing mode the user wants, high quality
+        { video: { facingMode: { exact: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+        // 2nd try: prefer facing mode but don't require it (works on most mobile)
+        { video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        // 3rd try: any camera at all — this is what makes it work on desktop
+        { video: true, audio: false },
+    ];
+
+    let lastError = null;
+    for (const constraints of constraintCandidates) {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            break; // success — stop trying
+        } catch (err) {
+            lastError = err;
+            stream = null;
+            // NotAllowedError means the user denied permission — no point retrying
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') break;
+        }
+    }
+
+    if (!stream) {
+        updateStatus('Camera failed', '#dc3545');
+        const msg = lastError?.name === 'NotAllowedError'
+            ? 'Camera permission was denied.\n\nPlease allow camera access in your browser settings and try again.'
+            : `Could not access camera: ${lastError?.message || 'Unknown error'}\n\nYou can still upload photos using the "Upload Photo" button.`;
+        alert(msg);
+        closeCameraModal();
+        return;
+    }
+
+    // Detect if we actually got the requested facing mode (desktop webcams
+    // don't have facingMode so we hide the flip button for them).
+    const videoTrack = stream.getVideoTracks()[0];
+    const trackSettings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    const hasMultipleCameras = trackSettings.facingMode !== undefined;
+    document.getElementById('facingBtn').style.display = hasMultipleCameras ? 'flex' : 'none';
+
+    video.srcObject = stream;
+
+    try {
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Camera timeout after 10s')), 10000);
+
+            video.onloadedmetadata = () => {
+                video.play().then(() => {
+                    // Wait for the first real decoded frame before resolving.
+                    if (typeof video.requestVideoFrameCallback === 'function') {
+                        // Modern Chrome/Edge: fires exactly when first frame is ready
+                        video.requestVideoFrameCallback(() => {
+                            clearTimeout(timeout);
+                            resolve();
+                        });
+                    } else {
+                        // Firefox / Safari fallback: poll via rAF until a frame is decoded
+                        const waitForFrame = () => {
+                            if (video.videoWidth > 0 && video.videoHeight > 0 && video.currentTime > 0) {
+                                clearTimeout(timeout);
+                                resolve();
+                            } else {
+                                requestAnimationFrame(waitForFrame);
+                            }
+                        };
+                        requestAnimationFrame(waitForFrame);
+                    }
+                }).catch(err => { clearTimeout(timeout); reject(err); });
+            };
+
+            video.onerror = () => { clearTimeout(timeout); reject(new Error('Video failed to load')); };
+        });
+    } catch (err) {
+        updateStatus('Camera failed', '#dc3545');
+        alert('Camera started but video failed to display: ' + err.message);
+        closeCameraModal();
+        return;
+    }
+
+    // Show live view
+    video.style.display = 'block';
+    document.getElementById('capturedPreview').style.display = 'none';
+    document.getElementById('cameraLiveActions').style.display = 'flex';
+    document.getElementById('cameraReviewActions').style.display = 'none';
+
+    captureBtn.disabled = false;
+    updateStatus('Ready ✓', '#685DC5');
+    capturedImageDataUrl = null;
+}
+
+async function flipCamera() {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    await startCamera();
+}
+
+async function capturePhoto() {
+    const video = document.getElementById('cameraPreview');
+    const captureBtn = document.getElementById('captureBtn');
+
+    if (!video.videoWidth || !video.videoHeight) {
+        alert('Camera not ready. Please wait a moment.');
+        return;
+    }
+
+    // Disable button to prevent double-tap
+    captureBtn.disabled = true;
+    updateStatus('Capturing...', 'white');
+
+
+    await new Promise(resolve => {
+        if (typeof video.requestVideoFrameCallback === 'function') {
+            video.requestVideoFrameCallback(resolve);
+        } else {
+            // Two rAF ticks is enough for the compositor to have a real frame
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+        }
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    capturedImageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    // A valid JPEG of even a tiny webcam frame should be well above 5 KB
+    if (capturedImageDataUrl.length < 5000) {
+        captureBtn.disabled = false;
+        updateStatus('Ready ✓', '#685DC5');
+        alert('Capture produced a blank image. Please try again.');
+        return;
+    }
+
+    // Show preview
+    const preview = document.getElementById('capturedPreview');
+    preview.src = capturedImageDataUrl;
+    preview.style.display = 'block';
+
+    // Hide video
+    video.style.display = 'none';
+    document.getElementById('facingBtn').style.display = 'none';
+    document.getElementById('cameraLiveActions').style.display = 'none';
+    document.getElementById('cameraReviewActions').style.display = 'flex';
+    updateStatus('Photo captured ✓', '#28a745');
+
+    // Stop camera stream to free the camera light / save battery
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+}
+
+function retakePhoto() {
+    capturedImageDataUrl = null;
+    document.getElementById('facingBtn').style.display = 'flex';
+    startCamera();
+}
+
+async function uploadCaptured() {
+    if (!capturedImageDataUrl) {
+        alert('No photo to upload');
+        return;
+    }
+
+    closeCameraModal();
+
+    try {
+        const response = await fetch(capturedImageDataUrl);
+        const blob = await response.blob();
+        const timestamp = Date.now();
+        const file = new File([blob], `camera_${timestamp}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: timestamp
+        });
+        await doUpload(file);
+    } catch (err) {
+        alert('Failed to upload photo: ' + err.message);
+    }
+}
+
+function closeCameraModal() {
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+
+    const video = document.getElementById('cameraPreview');
+    video.srcObject = null;
+    video.style.display = 'block';
+
+    document.getElementById('capturedPreview').style.display = 'none';
+    document.getElementById('capturedPreview').src = '';
+    document.getElementById('facingBtn').style.display = 'flex';
+    document.getElementById('cameraLiveActions').style.display = 'flex';
+    document.getElementById('cameraReviewActions').style.display = 'none';
+    document.getElementById('captureBtn').disabled = true;
+    updateStatus('Starting...', 'white');
+
+    capturedImageDataUrl = null;
+    document.getElementById('cameraModal').classList.remove('visible');
+}
+
+// Close on backdrop click
+document.getElementById('cameraModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCameraModal();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Event - Photo Booth{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-5 col-md-7">
+
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body p-5">
+
+                <h2 class="text-center fw-bold mb-2">📸 Create Event</h2>
+                <p class="text-center text-muted mb-4">
+                    Start a new photo booth event in seconds
+                </p>
+
+                <form method="post" action="{% url 'create_event' %}" id="eventForm">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="event_name" class="form-label fw-semibold">
+                            Event Name
+                        </label>
+                        <input type="text"
+                               class="form-control form-control-lg rounded-3"
+                               id="event_name"
+                               name="event_name"
+                               placeholder="e.g. Sarah's Birthday Party"
+                               required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="owner_email" class="form-label fw-semibold">
+                            Email <span class="text-muted">(optional)</span>
+                        </label>
+                        <input type="email"
+                               class="form-control rounded-3"
+                               id="owner_email"
+                               name="owner_email"
+                               placeholder="you@example.com">
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary btn-lg w-100 rounded-3 shadow-sm">
+                        Create Event
+                    </button>
+                </form>
+
+                <!-- Result box -->
+                <div id="resultContainer"></div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<script>
+document.getElementById('eventForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('{% url "create_event" %}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+
+            const container = document.getElementById('resultContainer');
+
+            container.innerHTML = `
+                <div class="alert alert-success mt-4 shadow-sm rounded-4 p-4 text-center">
+
+                    <h5 class="fw-bold mb-3">✅ Event Created Successfully!</h5>
+
+                    <img src="${data.qr_code}"
+                         class="my-3 rounded shadow-sm"
+                         style="max-width:180px;">
+
+                    <div class="small text-muted mb-2">Share with guests:</div>
+                    <a href="${data.guest_url}" target="_blank"
+                       class="d-block mb-3 text-break fw-semibold">
+                       ${data.guest_url}
+                    </a>
+
+                    <div class="small text-muted mb-2">Owner dashboard:</div>
+                    <a href="${data.owner_url}" target="_blank"
+                       class="d-block text-break fw-semibold">
+                       ${data.owner_url}
+                    </a>
+
+                </div>
+            `;
+
+            this.reset();
+        }
+        else {
+            alert('Error: ' + data.error);
+        }
+
+    } catch (error) {
+        alert('Error creating event');
+        console.error(error);
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ event.name }}{% endblock %}
+
+{% block content %}
+<style>
+.dashboard-wrapper{
+    background:linear-gradient(120deg,#f7f6ff,#f1efff);
+    padding:40px 25px;
+    border-radius:18px;
+    box-shadow:0 10px 35px rgba(0,0,0,0.05);
+}
+
+.event-card{
+    border:none;
+    border-radius:18px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.06);
+}
+
+.btn-purple{
+    background:#685DC5;
+    border:none;
+    color:white;
+    font-weight:600;
+    border-radius:10px;
+    padding:10px 18px;
+    transition:.25s;
+}
+.btn-purple:hover{
+    background:#574bb5;
+    color:white;
+    transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(104,93,197,.35);
+}
+
+.btn-outline-purple{
+    background:transparent;
+    border:2px solid #685DC5;
+    color:#685DC5;
+    font-weight:600;
+    border-radius:10px;
+    padding:8px 18px;
+    transition:.25s;
+    cursor:pointer;
+}
+.btn-outline-purple:hover,
+.btn-outline-purple.active{
+    background:#685DC5;
+    color:white;
+}
+
+.btn-soft-danger{
+    border-radius:10px;
+    font-weight:600;
+    padding:10px 18px;
+}
+
+.photo-badge{
+    background:#685DC5;
+    padding:8px 14px;
+    border-radius:30px;
+    font-weight:600;
+    font-size:.9rem;
+}
+
+/* Gallery cards */
+.photo-card{
+    background:white;
+    border-radius:16px;
+    padding:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+    transition:.25s;
+    overflow:hidden;
+    cursor:default;
+    position:relative;
+}
+.photo-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 14px 35px rgba(0,0,0,0.12);
+}
+.photo-card img{
+    width:100%;
+    height:220px;
+    object-fit:cover;
+    border-radius:12px;
+    transition:.2s;
+}
+
+/* Selection mode */
+.photo-card.selectable{
+    cursor:pointer;
+}
+.photo-card.selectable:hover img{
+    opacity:.85;
+}
+.photo-card.selected{
+    outline:3px solid #685DC5;
+    box-shadow:0 0 0 5px rgba(104,93,197,0.2);
+}
+.photo-card.selected img{
+    opacity:.75;
+}
+
+/* Checkmark overlay */
+.select-check{
+    display:none;
+    position:absolute;
+    top:14px;
+    left:14px;
+    width:26px;
+    height:26px;
+    background:#685DC5;
+    border-radius:50%;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-size:14px;
+    z-index:10;
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
+.selectable .select-check{
+    display:flex;
+    opacity:.35;
+}
+.selected .select-check{
+    opacity:1 !important;
+}
+
+/* Selection action bar */
+#selectionBar{
+    display:none;
+    background:white;
+    border-radius:14px;
+    padding:14px 20px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.1);
+    margin-bottom:20px;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+#selectionBar.visible{
+    display:flex;
+}
+
+.selection-count{
+    font-weight:600;
+    color:#685DC5;
+    margin-right:auto;
+}
+
+/* Custom modal */
+.custom-modal-backdrop{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+}
+.custom-modal-backdrop.visible{
+    display:flex;
+}
+.custom-modal{
+    background:white;
+    border-radius:20px;
+    padding:36px;
+    max-width:420px;
+    width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.2);
+    text-align:center;
+}
+.custom-modal .icon{
+    font-size:2.5rem;
+    margin-bottom:12px;
+}
+.custom-modal h5{
+    font-weight:700;
+    margin-bottom:8px;
+}
+.custom-modal p{
+    color:#6c757d;
+    margin-bottom:24px;
+}
+.modal-actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+}
+
+/* Empty state */
+.empty-box{
+    background:white;
+    border-radius:16px;
+    padding:40px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.06);
+}
+</style>
+
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="custom-modal-backdrop" id="deleteModal">
+    <div class="custom-modal">
+        <div class="icon">🗑️</div>
+        <h5>Delete Selected Photos?</h5>
+        <p id="deleteModalText">This will permanently delete the selected photos. This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn btn-outline-secondary rounded-3 px-4" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger rounded-3 px-4" onclick="confirmDelete()">Yes, Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-wrapper">
+
+    <!-- EVENT HEADER -->
+    <div class="card event-card mb-4">
+        <div class="card-body">
+            <h2 class="mb-1">{{ event.name }}</h2>
+            <p class="text-muted mb-3">Owner Dashboard</p>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <span class="photo-badge text-white">
+                    📸 <span id="photoCountBadge">{{ photo_count }}</span> photos
+                </span>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-purple" onclick="toggleUploads()">
+                        {% if event.uploads_enabled %}Close Uploads{% else %}Open Uploads{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHOTO GALLERY -->
+    <div class="card event-card">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <h5 class="mb-0">Photos</h5>
+                {% if photos %}
+                <div class="d-flex gap-2">
+                    <button class="btn-outline-purple" id="selectBtn" onclick="toggleSelectMode()">
+                        ☑️ Select
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- SELECTION ACTION BAR (shown in select mode) -->
+            <div id="selectionBar">
+                <span class="selection-count"><span id="selectedCount">0</span> selected</span>
+                <button class="btn-outline-purple" onclick="selectAll()">Select All</button>
+                <button class="btn-outline-purple" onclick="deselectAll()">Deselect All</button>
+                <button class="btn btn-purple" onclick="downloadSelected()" id="downloadSelectedBtn" disabled>
+                    ⬇️ Download
+                </button>
+                <button class="btn btn-danger rounded-3 px-3" onclick="openDeleteModal()" id="deleteSelectedBtn" disabled>
+                    🗑️ Delete
+                </button>
+                <button class="btn btn-outline-secondary rounded-3 px-3" onclick="toggleSelectMode()">
+                    Cancel
+                </button>
+            </div>
+
+            <div class="row g-4" id="photoGrid">
+                {% for photo in photos %}
+                <div class="col-6 col-md-4 col-lg-3 photo-col" data-photo-id="{{ photo.id }}" data-photo-url="{{ photo.s3_url }}">
+                    <div class="photo-card" onclick="handleCardClick(this)">
+                        <div class="select-check">✓</div>
+                        <img src="{{ photo.s3_url }}" alt="Photo">
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <div class="empty-box">
+                        <h5 class="mb-2">No photos yet</h5>
+                        <p class="text-muted mb-0">Once guests upload photos, they'll appear here ✨</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+let selectMode = false;
+
+function toggleSelectMode() {
+    selectMode = !selectMode;
+    const cards = document.querySelectorAll('.photo-card');
+    const bar = document.getElementById('selectionBar');
+    const btn = document.getElementById('selectBtn');
+
+    if (selectMode) {
+        cards.forEach(c => c.classList.add('selectable'));
+        bar.classList.add('visible');
+        btn.classList.add('active');
+        btn.textContent = '✕ Cancel Select';
+    } else {
+        cards.forEach(c => {
+            c.classList.remove('selectable', 'selected');
+        });
+        bar.classList.remove('visible');
+        btn.classList.remove('active');
+        btn.textContent = '☑️ Select';
+        updateSelectionCount();
+    }
+}
+
+function handleCardClick(card) {
+    if (!selectMode) return;
+    card.classList.toggle('selected');
+    updateSelectionCount();
+}
+
+function updateSelectionCount() {
+    const count = document.querySelectorAll('.photo-card.selected').length;
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('downloadSelectedBtn').disabled = count === 0;
+    document.getElementById('deleteSelectedBtn').disabled = count === 0;
+}
+
+function selectAll() {
+    document.querySelectorAll('.photo-card.selectable').forEach(c => c.classList.add('selected'));
+    updateSelectionCount();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.photo-card.selected').forEach(c => c.classList.remove('selected'));
+    updateSelectionCount();
+}
+
+function getSelectedPhotoIds() {
+    return [...document.querySelectorAll('.photo-card.selected')].map(card => {
+        return card.closest('.photo-col').dataset.photoId;
+    });
+}
+
+function getSelectedPhotoUrls() {
+    return [...document.querySelectorAll('.photo-card.selected')].map(card => {
+        return card.closest('.photo-col').dataset.photoUrl;
+    });
+}
+
+/* ---- DOWNLOAD ---- */
+async function downloadSelected() {
+    const ids = getSelectedPhotoIds();
+    if (ids.length === 0) return;
+
+    const btn = document.getElementById('downloadSelectedBtn');
+    btn.textContent = '⏳ Preparing...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('{% url "download_photos_zip" event.owner_secret %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ photo_ids: ids })
+        });
+
+        if (!response.ok) throw new Error('Download failed');
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '{{ event.name }}_photos.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Download failed. Please try again.');
+        console.error(err);
+    }
+
+    btn.textContent = '⬇️ Download';
+    btn.disabled = false;
+}
+
+/* ---- DELETE MODAL ---- */
+function openDeleteModal() {
+    const count = document.querySelectorAll('.photo-card.selected').length;
+    document.getElementById('deleteModalText').textContent =
+        `This will permanently delete ${count} photo${count !== 1 ? 's' : ''}. This action cannot be undone.`;
+    document.getElementById('deleteModal').classList.add('visible');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('visible');
+}
+
+// Close modal when clicking backdrop
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+
+async function confirmDelete() {
+    const ids = getSelectedPhotoIds();
+    closeDeleteModal();
+
+    try {
+        const response = await fetch('/owner/{{ event.owner_secret }}/photos/bulk-delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ photo_ids: ids })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Remove deleted cards from DOM
+            ids.forEach(id => {
+                const col = document.querySelector(`.photo-col[data-photo-id="${id}"]`);
+                if (col) col.remove();
+            });
+
+            const remaining = document.querySelectorAll('.photo-col').length;
+            document.getElementById('photoCountBadge').textContent = remaining;
+
+            if (remaining === 0) location.reload();
+            else {
+                toggleSelectMode(); // exit select mode
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Delete failed. Please try again.');
+        console.error(err);
+    }
+}
+
+/* ---- TOGGLE UPLOADS ---- */
+async function toggleUploads() {
+    try {
+        const response = await fetch('{% url "toggle_uploads" event.owner_secret %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        const data = await response.json();
+        if (data.success) location.reload();
+    } catch (error) {
+        alert('Error toggling uploads');
+    }
+}
+</script>
+
+{% endblock %}
