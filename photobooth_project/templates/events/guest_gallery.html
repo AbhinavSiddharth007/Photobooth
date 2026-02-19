@@ -542,27 +542,47 @@ function retakePhoto() {
     startCamera();
 }
 
+function dataURLToBlob(dataURL) {
+    if (!dataURL) return null;
+    const [header, base64] = dataURL.split(',');
+    const contentType = header.match(/:(.*?);/)[1];
+    const binary = atob(base64);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        array[i] = binary.charCodeAt(i);
+    }
+    return new Blob([array], { type: contentType });
+}
+
 async function uploadCaptured() {
     if (!capturedImageDataUrl) {
-        alert('No photo to upload');
+        alert('No photo captured to upload!');
         return;
     }
 
     closeCameraModal();
 
     try {
-        const response = await fetch(capturedImageDataUrl);
-        const blob = await response.blob();
+        // convert DataURL to Blob
+        const blob = dataURLToBlob(capturedImageDataUrl);
+        if (!blob) {
+            alert('Failed to create file from captured image.');
+            return;
+        }
+
         const timestamp = Date.now();
         const file = new File([blob], `camera_${timestamp}.jpg`, {
             type: 'image/jpeg',
             lastModified: timestamp
         });
+
         await doUpload(file);
     } catch (err) {
         alert('Failed to upload photo: ' + err.message);
+        console.error(err);
     }
 }
+
 
 function closeCameraModal() {
     if (stream) {
