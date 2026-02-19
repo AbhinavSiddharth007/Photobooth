@@ -91,7 +91,7 @@ class TestPhotoModel:
         assert photo.event == event
 
     def test_photos_ordered_by_latest_first(self, db, event):
-        p1 = Photo.objects.create(
+        Photo.objects.create(
             event=event, s3_key="key1", s3_url="https://s3.example.com/1.jpg",
             original_filename="1.jpg", file_size=100, content_type="image/jpeg"
         )
