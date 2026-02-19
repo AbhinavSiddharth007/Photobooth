@@ -5,25 +5,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Event',
+            name="Event",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('guest_code', models.CharField(editable=False, max_length=12, unique=True)),
-                ('owner_secret', models.CharField(editable=False, max_length=32, unique=True)),
-                ('name', models.CharField(max_length=200)),
-                ('owner_email', models.EmailField(blank=True, max_length=254, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('expires_at', models.DateTimeField()),
-                ('is_active', models.BooleanField(default=True)),
-                ('uploads_enabled', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "guest_code",
+                    models.CharField(editable=False, max_length=12, unique=True),
+                ),
+                (
+                    "owner_secret",
+                    models.CharField(editable=False, max_length=32, unique=True),
+                ),
+                ("name", models.CharField(max_length=200)),
+                (
+                    "owner_email",
+                    models.EmailField(blank=True, max_length=254, null=True),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("expires_at", models.DateTimeField()),
+                ("is_active", models.BooleanField(default=True)),
+                ("uploads_enabled", models.BooleanField(default=True)),
             ],
         ),
     ]

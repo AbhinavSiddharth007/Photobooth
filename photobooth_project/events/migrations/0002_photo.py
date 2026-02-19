@@ -6,26 +6,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('events', '0001_initial'),
+        ("events", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Photo',
+            name="Photo",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('s3_key', models.CharField(max_length=500)),
-                ('s3_url', models.URLField(max_length=1000)),
-                ('original_filename', models.CharField(max_length=255)),
-                ('file_size', models.IntegerField()),
-                ('content_type', models.CharField(max_length=50)),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='photos', to='events.event')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("s3_key", models.CharField(max_length=500)),
+                ("s3_url", models.URLField(max_length=1000)),
+                ("original_filename", models.CharField(max_length=255)),
+                ("file_size", models.IntegerField()),
+                ("content_type", models.CharField(max_length=50)),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="photos",
+                        to="events.event",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-uploaded_at'],
+                "ordering": ["-uploaded_at"],
             },
         ),
     ]

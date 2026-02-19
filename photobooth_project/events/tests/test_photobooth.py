@@ -13,6 +13,7 @@ from events.models import Event, Photo
 # Fixtures
 # ──────────────────────────────────────────────
 
+
 @pytest.fixture
 def client():
     return Client()
@@ -41,9 +42,9 @@ def photo(db, event):
 # Model tests
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestEventModel:
-
     def test_auto_generates_guest_code(self, event):
         assert event.guest_code
         assert len(event.guest_code) == 12
@@ -83,7 +84,6 @@ class TestEventModel:
 
 @pytest.mark.django_db
 class TestPhotoModel:
-
     def test_str_includes_event_name(self, photo):
         assert "Test Party" in str(photo)
 
@@ -92,12 +92,20 @@ class TestPhotoModel:
 
     def test_photos_ordered_by_latest_first(self, db, event):
         Photo.objects.create(
-            event=event, s3_key="key1", s3_url="https://s3.example.com/1.jpg",
-            original_filename="1.jpg", file_size=100, content_type="image/jpeg"
+            event=event,
+            s3_key="key1",
+            s3_url="https://s3.example.com/1.jpg",
+            original_filename="1.jpg",
+            file_size=100,
+            content_type="image/jpeg",
         )
         p2 = Photo.objects.create(
-            event=event, s3_key="key2", s3_url="https://s3.example.com/2.jpg",
-            original_filename="2.jpg", file_size=100, content_type="image/jpeg"
+            event=event,
+            s3_key="key2",
+            s3_url="https://s3.example.com/2.jpg",
+            original_filename="2.jpg",
+            file_size=100,
+            content_type="image/jpeg",
         )
         photos = list(event.photos.all())
         assert photos[0] == p2  # newest first
@@ -107,9 +115,9 @@ class TestPhotoModel:
 # View tests – home
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestHomeView:
-
     def test_home_returns_200(self, client):
         response = client.get(reverse("home"))
         assert response.status_code == 200
@@ -119,9 +127,9 @@ class TestHomeView:
 # View tests – create_event
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestCreateEventView:
-
     @patch("events.views.generate_qr_code", return_value="data:image/png;base64,abc")
     def test_create_event_success(self, mock_qr, client):
         response = client.post(reverse("create_event"), {"event_name": "Birthday Bash"})
@@ -152,9 +160,9 @@ class TestCreateEventView:
 # View tests – guest_gallery
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestGuestGalleryView:
-
     def test_valid_guest_code_returns_200(self, client, event):
         response = client.get(reverse("guest_gallery", args=[event.guest_code]))
         assert response.status_code == 200
@@ -172,9 +180,9 @@ class TestGuestGalleryView:
 # View tests – owner_dashboard
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestOwnerDashboardView:
-
     def test_valid_owner_secret_returns_200(self, client, event):
         response = client.get(reverse("owner_dashboard", args=[event.owner_secret]))
         assert response.status_code == 200
@@ -192,9 +200,9 @@ class TestOwnerDashboardView:
 # View tests – toggle_uploads
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestToggleUploadsView:
-
     def test_toggle_disables_uploads(self, client, event):
         assert event.uploads_enabled is True
         client.post(reverse("toggle_uploads", args=[event.owner_secret]))
@@ -223,9 +231,9 @@ class TestToggleUploadsView:
 # View tests – upload_photo
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestUploadPhotoView:
-
     def test_upload_disabled_returns_403(self, client, event):
         event.uploads_enabled = False
         event.save()
@@ -240,25 +248,30 @@ class TestUploadPhotoView:
     @patch("events.views.validate_image_file", return_value=(False, "File too large"))
     def test_invalid_file_returns_400(self, mock_validate, client, event):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        f = SimpleUploadedFile("bad.exe", b"data", content_type="application/octet-stream")
+
+        f = SimpleUploadedFile(
+            "bad.exe", b"data", content_type="application/octet-stream"
+        )
         response = client.post(
-            reverse("upload_photo", args=[event.guest_code]),
-            {"photo": f}
+            reverse("upload_photo", args=[event.guest_code]), {"photo": f}
         )
         assert response.status_code == 400
         assert response.json()["error"] == "File too large"
 
     @patch("events.views.validate_image_file", return_value=(True, None))
-    @patch("events.views.upload_photo_to_s3", return_value={
-        "s3_key": "events/abc/photo.jpg",
-        "s3_url": "https://s3.example.com/events/abc/photo.jpg"
-    })
+    @patch(
+        "events.views.upload_photo_to_s3",
+        return_value={
+            "s3_key": "events/abc/photo.jpg",
+            "s3_url": "https://s3.example.com/events/abc/photo.jpg",
+        },
+    )
     def test_valid_upload_creates_photo(self, mock_s3, mock_validate, client, event):
         from django.core.files.uploadedfile import SimpleUploadedFile
+
         f = SimpleUploadedFile("shot.jpg", b"\xff\xd8\xff", content_type="image/jpeg")
         response = client.post(
-            reverse("upload_photo", args=[event.guest_code]),
-            {"photo": f}
+            reverse("upload_photo", args=[event.guest_code]), {"photo": f}
         )
         assert response.status_code == 200
         data = response.json()
@@ -270,16 +283,16 @@ class TestUploadPhotoView:
 # View tests – bulk_delete_photos
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestBulkDeletePhotosView:
-
     @patch("events.views.delete_photo_from_s3")
     def test_bulk_delete_removes_photos(self, mock_s3_delete, client, event, photo):
         payload = json.dumps({"photo_ids": [str(photo.id)]})
         response = client.post(
             reverse("bulk_delete_photos", args=[event.owner_secret]),
             data=payload,
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code == 200
         data = response.json()
@@ -292,7 +305,7 @@ class TestBulkDeletePhotosView:
         response = client.post(
             reverse("bulk_delete_photos", args=[event.owner_secret]),
             data=payload,
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code == 400
 
@@ -300,7 +313,7 @@ class TestBulkDeletePhotosView:
         response = client.post(
             reverse("bulk_delete_photos", args=[event.owner_secret]),
             data="not-json",
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code == 400
 
@@ -309,24 +322,30 @@ class TestBulkDeletePhotosView:
         response = client.post(
             "/owner/wrongsecret/photos/bulk-delete/",
             data=payload,
-            content_type="application/json"
+            content_type="application/json",
         )
         assert response.status_code == 404
 
     @patch("events.views.delete_photo_from_s3")
-    def test_bulk_delete_ignores_photos_from_other_events(self, mock_s3_delete, client, db):
+    def test_bulk_delete_ignores_photos_from_other_events(
+        self, mock_s3_delete, client, db
+    ):
         event_a = Event.objects.create(name="Event A")
         event_b = Event.objects.create(name="Event B")
         photo_b = Photo.objects.create(
-            event=event_b, s3_key="key", s3_url="https://s3.example.com/b.jpg",
-            original_filename="b.jpg", file_size=100, content_type="image/jpeg"
+            event=event_b,
+            s3_key="key",
+            s3_url="https://s3.example.com/b.jpg",
+            original_filename="b.jpg",
+            file_size=100,
+            content_type="image/jpeg",
         )
         # Try to delete event_b's photo using event_a's secret
         payload = json.dumps({"photo_ids": [str(photo_b.id)]})
         client.post(
             reverse("bulk_delete_photos", args=[event_a.owner_secret]),
             data=payload,
-            content_type="application/json"
+            content_type="application/json",
         )
         assert Photo.objects.filter(id=photo_b.id).exists()
 
@@ -335,9 +354,9 @@ class TestBulkDeletePhotosView:
 # View tests – delete_photo (single)
 # ──────────────────────────────────────────────
 
+
 @pytest.mark.django_db
 class TestDeletePhotoView:
-
     @patch("events.views.delete_photo_from_s3")
     def test_delete_single_photo(self, mock_s3_delete, client, event, photo):
         response = client.post(

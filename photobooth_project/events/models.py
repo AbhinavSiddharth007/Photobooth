@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 
+
 class Event(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     guest_code = models.CharField(max_length=12, unique=True, editable=False)
@@ -26,9 +27,10 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+
 class Photo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='photos')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="photos")
     s3_key = models.CharField(max_length=500)
     s3_url = models.URLField(max_length=1000)
     original_filename = models.CharField(max_length=255)
@@ -37,7 +39,7 @@ class Photo(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-uploaded_at']
+        ordering = ["-uploaded_at"]
 
     def __str__(self):
         return f"Photo for {self.event.name}"
