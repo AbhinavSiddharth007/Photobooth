@@ -1,87 +1,198 @@
+# Photobooth Project
 
-# Photo Booth Web App
+A Django-based photobooth web application that allows event owners to create events, upload photos, and share galleries with guests.
 
-**Author:** Shafeen
-**Version:** 0.1
-**Date:** February 2026
-
----
-
-## Project Overview
-
-The Photo Booth Web App is a **temporary, browser-based photo sharing platform** designed for events. It allows event organizers to create events and collect photos from guests via a QR code or link. Events automatically expire after 30 days.
-
-**Key Goals:**
-
-* Simple event creation for owners
-* Guest photo uploads without accounts
-* Owner dashboard for managing photos
-* Automatic event expiry and photo deletion
+The project includes automated testing, linting, and CI integration for code quality and reliability.
 
 ---
 
-## Planned Features
+## Features
 
-**Owner Features:**
-
-* Create event (event name, optional email)
-* Receive secret dashboard link
-* View, delete, download photos
-* Close uploads early
-
-**Guest Features:**
-
-* Scan QR code / click event link
-* View event gallery
-* Upload photos anonymously
-* Share event with others
-
-**System Features:**
-
-* Photo validation (type, size)
-* Auto-expiry after 30 days
-* Storage on local server (dev) or S3 (production)
-* Mobile-friendly design
+* Create and manage events
+* Upload event photos
+* Guest gallery access via shared links
+* AWS S3 integration for media storage
+* Automated tests with pytest
+* Code linting and formatting with Ruff
+* Pre-commit hooks for consistent code quality
+* CI workflow for automatic checks on push and pull request
 
 ---
 
-## Project Structure (Planned)
+## Tech Stack
 
+* Python 3.11+
+* Django 5
+* AWS S3 (boto3)
+* pytest and pytest-django
+* Ruff for linting and formatting
+
+---
+
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/Photobooth.git
+cd Photobooth
 ```
-photo-booth/
-├── backend/                 # Django backend
-│   ├── events/              # Event creation, expiry logic
-│   ├── photos/              # Photo upload, storage, deletion
-│   ├── core/                # Utilities, middleware
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/                # Templates + JS
-│   ├── templates/           # HTML pages
-│   └── static/              # CSS and JS files
-├── media/                   # Uploaded photos (local dev)
-└── README.md                # Project summary and plan
+
+### 2. Create virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Mac/Linux
+.venv\Scripts\activate      # Windows
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
-## Implementation Plan
+## Environment Variables
 
-**Step 1:** Setup Django project and models
-**Step 2:** Create event creation form and owner dashboard (basic HTML templates)
-**Step 3:** Implement photo upload and gallery view
-**Step 4:** Generate QR codes and secret owner links
-**Step 5:** Add auto-expiry logic for events and photos
-**Step 6:** Polish UI for mobile-friendly experience
-**Step 7:** Optional: S3 storage integration and ZIP download
+Create a `.env` file in the project root:
+
+```
+SECRET_KEY=your_django_secret
+DEBUG=True
+
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_STORAGE_BUCKET_NAME=your_bucket
+AWS_REGION=your_region
+```
+
+Do not commit `.env` to Git.
+
+---
+
+## Database Setup
+
+```bash
+python manage.py migrate
+python manage.py createsuperuser
+```
 
 ---
 
-## Technologies to Use
+## Run Development Server
 
-* **Backend:** Django (Python)
-* **Frontend:** Django templates + JS
-* **Database:** PostgreSQL (or SQLite for dev)
-* **Storage:** Local file system (dev) / AWS S3 (prod)
-* **QR Codes:** Python library (qrcode)
+```bash
+python manage.py runserver
+```
+
+Open:
+
+```
+http://127.0.0.1:8000/
+```
 
 ---
+
+## Running Tests
+
+```bash
+pytest
+```
+
+With coverage:
+
+```bash
+pytest --cov
+```
+
+---
+
+## Linting with Ruff
+
+Check issues:
+
+```bash
+ruff check .
+```
+
+Auto-fix:
+
+```bash
+ruff check . --fix
+```
+
+Format code:
+
+```bash
+ruff format .
+```
+
+---
+
+## Pre-commit Hooks
+
+Install hooks:
+
+```bash
+pre-commit install
+```
+
+Run manually:
+
+```bash
+pre-commit run --all-files
+```
+
+Hooks run automatically before each commit.
+
+---
+
+## Continuous Integration
+
+GitHub Actions automatically:
+
+* Runs pre-commit checks
+* Runs Ruff linting
+* Executes pytest tests
+
+On every push and pull request to:
+
+```
+main
+develop
+```
+
+---
+
+## Project Structure (simplified)
+
+```
+Photobooth/
+│
+├── photobooth_project/
+│   ├── events/
+│   ├── templates/
+│   └── settings.py
+│
+├── .github/workflows/
+├── requirements.txt
+├── pytest.ini
+└── README.md
+```
+
+---
+
+## Contributing
+
+1. Create a feature branch
+2. Commit changes
+3. Ensure tests pass
+4. Open a Pull Request
+
+---
+
+## License
+
+This project is for educational or demonstration purposes.
